@@ -8,6 +8,7 @@ public class PhotoBoothController : MonoBehaviour
 {
     [Header("Model Settings")]
     [SerializeField] private GameObject modelParent;
+    public Vector3 defaultRotation = new Vector3();
     public float rotationSpeed;
     public float dragSpeed;
     public float zoomSpeed;
@@ -24,7 +25,7 @@ public class PhotoBoothController : MonoBehaviour
 
     [Header("UI Settings")]
     [SerializeField] private Canvas canvas;
-    [SerializeField] private GameObject missingModelsText;
+    [SerializeField] private GameObject messagePopup;
 
     private void Awake()
     {
@@ -37,7 +38,10 @@ public class PhotoBoothController : MonoBehaviour
     {
         cam = Camera.main;
 
-        if (models.Count == 0) missingModelsText.SetActive(true);
+        modelParent.transform.rotation = Quaternion.Euler(defaultRotation);
+
+        if (models.Count == 0)
+            MessagePopup("<b>Input</b> folder is empty or missing.", true);
 
         SpawnModel();
     }
@@ -49,7 +53,16 @@ public class PhotoBoothController : MonoBehaviour
         {
             Application.Quit();
         }
-        #endif
+#endif
+
+        if (Input.GetKeyDown(KeyCode.A))
+            GetNextModel(true);
+
+        if (Input.GetKeyDown(KeyCode.D))
+            GetNextModel();
+
+        if (Input.GetKeyDown(KeyCode.Space))
+            StartCoroutine(TakePhoto());
 
         HandleRotation();
         HandleZoom();
@@ -99,9 +112,17 @@ public class PhotoBoothController : MonoBehaviour
         SpawnModel();
     }
 
+    private void SpawnModel()
+    {
+        if (models.Count == 0) return;
+
+        if (currentModel) Destroy(currentModel);
+        currentModel = Instantiate(models[modelIndex], modelParent.transform);
+    }
+
     public void PhotoButton() => StartCoroutine(TakePhoto());
 
-    public IEnumerator TakePhoto()
+    private IEnumerator TakePhoto()
     {
         if (models.Count == 0) yield break;
 
@@ -117,13 +138,15 @@ public class PhotoBoothController : MonoBehaviour
         yield return new WaitForFixedUpdate();
 
         canvas.enabled = true;
+
+        MessagePopup("Screenshot saved!");
     }
 
-    private void SpawnModel()
+    private void MessagePopup(string message, bool persistent = false)
     {
-        if (models.Count == 0) return;
+        messagePopup.SetActive(true);
+        messagePopup.GetComponent<Animator>().SetBool("IsPersistent", persistent);
 
-        if (currentModel) Destroy(currentModel);
-        currentModel = Instantiate(models[modelIndex], modelParent.transform);
+        messagePopup.GetComponentInChildren<TMPro.TextMeshProUGUI>().text = message;
     }
 }
